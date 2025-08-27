@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Aventura de Problemas | Banco de Problemas (Local)</title>
+  <meta name="author" content="Diego Alberto Moya Puerta, maestro de Educación Primaria, Región de Murcia">
+
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Fuente Nunito -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;700;900&display=swap" rel="stylesheet"/>
+
+  <!-- OpenDyslexic CDN (carga rápida para modo disléxico) -->
+    <!-- OpenDyslexic: removed CDN link because some CDN builds reference font files that 404 in local file viewing.
+         If you want this font, either host the WOFF/WOFF2 files locally and add a @font-face, or use a reliable CDN
+         that exposes the font files. Example options:
+           - host OpenDyslexic files under ./fonts/ and add a local @font-face in styles.css
+           - re-enable a CDN link that serves both CSS and font files reliably
+         For now the stylesheet is disabled to avoid console 404s. -->
+    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/open-dyslexic@latest/open-dyslexic-regular.css" /> -->
+
+  <!-- Estilos propios -->
+  <link rel="stylesheet" href="styles.css"/>
+  <!-- small inline favicon to prevent 404 -->
+  <link rel="icon" href="data:image/x-icon;base64,AAABAAEAEBAAAAEAIABoBAAAFgAAACgAAAAQAAAAIAAAAAEAGAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA" />
+</head>
+<body class="gradient-bg min-h-screen p-4 flex items-center justify-center">
+
+  <!-- Skip link for keyboard users -->
+  <a href="#" id="skip-to-content" class="skip-link">Saltar al contenido</a>
+
+  <!-- Toast container -->
+  <div id="toast-container" aria-live="polite" class="fixed bottom-6 right-6 z-50 space-y-2"></div>
+  <!-- Accessibility announcer for screen readers -->
+  <div id="a11y-announcer" aria-live="polite" aria-atomic="true" class="visually-hidden" role="status"></div>
+
+  <div class="w-full max-w-4xl mx-auto">
+    <!-- Safelist para Tailwind (colores de botones de curso) -->
+    <div class="hidden">
+      bg-yellow-400 text-yellow-900
+      bg-green-400 text-green-900
+      bg-blue-400 text-blue-900
+      bg-red-400 text-red-900
+      bg-purple-400 text-purple-900
+      bg-pink-400 text-pink-900
+      hover:-translate-y-1
+      transition
+    </div>
+
+    <!-- Controles Superiores -->
+    <div class="flex justify-center items-center space-x-6 text-white font-bold mb-4">
+      <div class="flex items-center space-x-3">
+        <span>Modo Juego</span>
+        <label class="flex items-center cursor-pointer">
+          <input type="checkbox" id="mode-toggle" class="sr-only peer">
+          <div class="relative w-12 h-7 bg-gray-400 rounded-full peer peer-checked:bg-blue-600 toggle-bg"></div>
+        </label>
+        <span>Modo Editor</span>
+      </div>
+      <!-- Accessibility button -->
+      <div class="ml-4">
+        <div class="inline-block mr-3">
+    <div id="avatar-face-top" class="avatar-face avatar-face-sm" title="Selecciona personaje" role="button" tabindex="0" aria-label="Selecciona personaje">🤖</div>
+        </div>
+        <button id="accessibility-btn" class="font-bold text-sm px-3 py-2 rounded bg-white/10 hover:bg-white/20">Accesibilidad</button>
+        <div id="accessibility-panel" class="hidden absolute mt-2 right-6 w-64 card p-3 text-gray-800 z-40">
+          <h4 class="font-bold mb-2">Opciones de accesibilidad</h4>
+          <div class="flex items-center justify-between mb-2">
+            <label for="acc-contrast">Alto contraste</label>
+            <input type="checkbox" id="acc-contrast" />
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <label for="acc-large">Texto grande</label>
+            <input type="checkbox" id="acc-large" />
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <label for="acc-font">Tipografía legible</label>
+            <input type="checkbox" id="acc-font" />
+          </div>
+          <div class="flex items-center justify-between mb-2">
+            <label for="acc-reduce-motion">Reducir movimiento</label>
+            <input type="checkbox" id="acc-reduce-motion" />
+          </div>
+          <div class="space-y-2 mt-2">
+            <div class="flex items-center justify-between">
+              <label for="acc-voice" class="text-sm">Voz</label>
+              <select id="acc-voice" class="p-1 border rounded w-2/3"></select>
+            </div>
+            <div class="flex items-center justify-between">
+              <label for="acc-rate" class="text-sm">Velocidad</label>
+              <div class="w-2/3 flex items-center gap-2">
+                <input id="acc-rate" type="range" min="0.6" max="1.6" step="0.05" value="1" class="flex-1" />
+                <span id="acc-rate-val" class="text-sm w-10 text-right">1.0</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between">
+              <label for="acc-pitch" class="text-sm">Pitch</label>
+              <div class="w-2/3 flex items-center gap-2">
+                <input id="acc-pitch" type="range" min="0.5" max="2.0" step="0.05" value="1" class="flex-1" />
+                <span id="acc-pitch-val" class="text-sm w-10 text-right">1.0</span>
+              </div>
+            </div>
+            <div class="flex items-center justify-between read-controls">
+              <div class="flex gap-2 flex-wrap">
+                <button id="acc-tts-play" class="px-3 py-1 rounded bg-green-600 text-white">Reproducir</button>
+                <button id="acc-tts-pause" class="px-3 py-1 rounded bg-yellow-500 text-white">Pausa</button>
+                <button id="acc-tts-resume" class="px-3 py-1 rounded bg-indigo-600 text-white">Continuar</button>
+                <button id="acc-tts-stop" class="px-3 py-1 rounded border">Detener</button>
+              </div>
+              <div>
+                <button id="acc-read" class="px-3 py-1 mr-2 rounded bg-blue-600 text-white">Leer problema</button>
+                <button id="acc-close" class="px-3 py-1 rounded border">Cerrar</button>
+              </div>
+            </div>
+          </div>
+          <hr class="my-2" />
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label for="acc-reading">Modo lectura</label>
+              <input type="checkbox" id="acc-reading" />
+            </div>
+            <div class="flex items-center justify-between">
+              <label for="acc-dyslexic">Fuente disléxica</label>
+              <input type="checkbox" id="acc-dyslexic" />
+            </div>
+            <div class="flex items-center justify-between">
+              <label for="acc-leading" class="text-sm">Interlineado</label>
+              <div class="w-2/3 flex items-center gap-2">
+                <input id="acc-leading" type="range" min="1.1" max="2.0" step="0.05" value="1.5" class="flex-1" />
+                <span id="acc-leading-val" class="text-sm w-10 text-right">1.50</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vistas -->
+    <div id="play-view">
+      <div id="level-selection" class="text-center"></div>
+      <div id="problem-selection-view" class="hidden-view card rounded-2xl shadow-2xl p-6 md:p-8"></div>
+    <div id="game-container" class="hidden-view card rounded-2xl shadow-2xl p-6 md:p-8" role="main" aria-live="polite">
+      <!-- Avatar area -->
+      <div id="avatar-shell" class="flex items-start gap-4 mb-4">
+  <div id="avatar-face" class="avatar-face" title="Selecciona personaje" role="button" tabindex="0" aria-label="Selecciona personaje">🤖</div>
+        <div id="avatar-bubble" class="avatar-bubble visually-hidden" role="status" aria-live="polite">¡Hola! Soy tu guía.</div>
+        <div class="flex-1">
+          <!-- existing game content mount remains here -->
+        </div>
+      </div>
+  <!-- Fixed avatar (bottom-left) will be mounted at document.body for persistent visibility -->
+      <!-- Emoji picker modal (hidden by default) -->
+      <div id="avatar-picker" class="hidden hidden-view fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50">
+        <div class="card p-4 w-full max-w-md">
+          <h3 class="font-bold mb-2">Elige tu personaje</h3>
+          <div id="avatar-options" class="grid grid-cols-6 gap-2 mb-4">
+            <!-- JS will populate emoji/image buttons -->
+          </div>
+          <div class="border-t pt-3">
+            <h4 class="font-bold text-sm mb-2">Preferencias</h4>
+            <div class="flex items-center gap-2 mb-2">
+              <input type="checkbox" id="avatar-pref-animate" />
+              <label for="avatar-pref-animate" class="text-sm">Animaciones</label>
+            </div>
+            <div class="flex items-center gap-2">
+              <input type="checkbox" id="avatar-pref-voice" />
+              <label for="avatar-pref-voice" class="text-sm">Voz (Text-to-Speech)</label>
+            </div>
+          </div>
+          <div class="flex justify-end gap-2">
+            <button id="avatar-cancel" class="py-2 px-3 rounded border">Cancelar</button>
+            <button id="avatar-close" class="py-2 px-3 rounded bg-blue-600 text-white">Aceptar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    </div>
+
+    <div id="editor-view" class="hidden-view">
+      <div class="card rounded-2xl shadow-2xl p-6 md:p-8">
+        <h1 class="text-3xl font-black text-gray-800 mb-4">Mi Banco de Problemas</h1>
+
+        <div class="flex items-center gap-4 mb-6">
+          <label for="grade-selector" class="font-bold text-gray-700">Ver problemas de:</label>
+          <select id="grade-selector" class="p-2 border-2 border-gray-300 rounded-lg">
+            <option value="1">1º</option><option value="2">2º</option><option value="3">3º</option>
+            <option value="4">4º</option><option value="5">5º</option><option value="6">6º</option>
+          </select>
+        </div>
+
+        <div id="problem-list-container" class="mb-6 min-h-[100px]"></div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <button id="btn-add-manual" class="col-span-1 font-bold text-white bg-green-500 hover:bg-green-600 px-6 py-3 rounded-lg w-full shadow-md">
+            Añadir Problema Manualmente
+          </button>
+          <button id="btn-generate-ai" class="col-span-1 font-bold text-white bg-purple-500 hover:bg-purple-600 px-6 py-3 rounded-lg w-full shadow-md" title="Generar un nuevo problema usando IA">
+            ✨ Generar Problema con IA
+          </button>
+          <div class="col-span-1">
+            <select id="export-grade-selector" class="w-full p-2 border rounded mb-2">
+              <option value="all">Exportar: Todos</option>
+              <option value="1">Exportar: 1º</option>
+              <option value="2">Exportar: 2º</option>
+              <option value="3">Exportar: 3º</option>
+              <option value="4">Exportar: 4º</option>
+              <option value="5">Exportar: 5º</option>
+              <option value="6">Exportar: 6º</option>
+            </select>
+            <button id="btn-export-json" class="font-bold text-white bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg w-full shadow-md" title="Exportar problemas a JSON">Exportar JSON</button>
+          </div>
+          <div class="col-span-1">
+            <button id="btn-import-json" class="font-bold text-white bg-gray-700 hover:bg-gray-800 px-6 py-3 rounded-lg w-full mb-2 shadow-md" title="Importar problemas desde JSON">Importar JSON</button>
+            <input type="file" id="import-file-input" accept=".json,application/json" class="hidden" />
+            <button id="btn-import-preview" class="w-full text-sm text-gray-600 mt-1 hover:text-gray-800">Mostrar previsualización antes de importar</button>
+            <button id="btn-show-backups" class="w-full text-sm text-gray-600 mt-2 hover:text-gray-800">Ver backups</button>
+            <button id="btn-revert-last-import" class="w-full text-sm text-gray-600 mt-1 hover:text-gray-800">Revertir última importación</button>
+            <button id="btn-undo-action" class="w-full text-sm text-gray-600 mt-1 hover:text-gray-800">Deshacer acción</button>
+          </div>
+        </div>
+
+        <!-- Modal de Previsualización de Importación -->
+        <div id="import-preview-modal" class="hidden hidden-view fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
+            <h3 class="text-xl font-bold mb-3">Previsualización de Importación</h3>
+            <div id="import-preview-content" class="text-sm text-gray-800 mb-4"></div>
+            <div class="flex justify-end gap-2">
+              <button id="import-cancel" class="py-2 px-4 rounded border">Cancelar</button>
+              <button id="import-replace" class="py-2 px-4 rounded bg-red-600 text-white">Reemplazar banco</button>
+              <button id="import-merge" class="py-2 px-4 rounded bg-green-600 text-white">Mezclar problemas</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal Añadir Problema (arranca oculto y reforzado) -->
+        <div id="add-problem-modal" class="hidden hidden-view fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div class="card rounded-2xl shadow-2xl p-8 w-full max-w-2xl max-h-full overflow-y-auto">
+            <h2 id="add-problem-title" class="text-2xl font-bold mb-4">Nuevo Problema</h2>
+            <form id="add-problem-form" class="space-y-4"></form>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Contenedor modal “IA” (no usado; por compatibilidad visual) -->
+    <div id="ai-modal" class="hidden-view fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"></div>
+
+    <footer class="mt-6 text-center text-white/80 text-sm" aria-label="Autor">
+      <p class="font-semibold">Autor: Diego Alberto Moya Puerta</p>
+      <p class="text-sm">Maestro de Educación Primaria — Región de Murcia</p>
+    </footer>
+  </div>
+
+  <!-- Modal Backups -->
+  <div id="backups-modal" class="hidden hidden-view fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
+      <h3 class="text-xl font-bold mb-3">Backups automáticos</h3>
+      <div id="backups-content" class="text-sm text-gray-800 mb-4"></div>
+      <div class="flex justify-end gap-2">
+        <button id="backups-close" class="py-2 px-4 rounded border">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Errores de Importación -->
+  <div id="import-errors-modal" class="hidden hidden-view fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+    <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-3xl max-h-[80vh] overflow-y-auto">
+      <h3 class="text-xl font-bold mb-3">Errores de Importación</h3>
+      <div class="mb-3 flex items-center gap-3">
+        <select id="errors-filter" class="p-2 border rounded">
+          <option value="all">Todos los errores</option>
+        </select>
+        <button id="errors-export" class="py-2 px-3 rounded bg-indigo-600 text-white">Exportar errores</button>
+      </div>
+      <div id="import-errors-content" class="text-sm text-gray-800 mb-4"></div>
+      <div class="flex justify-end gap-2">
+  <button id="import-errors-apply" class="py-2 px-4 rounded bg-green-600 text-white">Aplicar correcciones sugeridas</button>
+  <button id="import-errors-apply-selected" class="py-2 px-4 rounded bg-yellow-500 text-white">Aplicar seleccionadas</button>
+  <button id="import-errors-close" class="py-2 px-4 rounded border">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js" defer></script>
+  <div id="avatar-fixed" aria-hidden="false">
+    <div id="avatar-face-fixed" class="avatar-face avatar-face-sm" title="Selecciona personaje" role="button" tabindex="0" aria-label="Selecciona personaje">🤖</div>
+  </div>
+</body>
+</html>
