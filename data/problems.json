@@ -1,0 +1,286 @@
+[
+  {
+    "id": "m6aosveh",
+    "createdAt": 1756398881044,
+    "grade": 1,
+    "question": "Si tengo 6 manzanas y me regalan 2 más, ¿cuántas manzanas tengo ahora?",
+    "type": "CAMBIO",
+    "data": {
+      "ci": "6",
+      "c": "2",
+      "cf": "?"
+    },
+    "labels": {
+      "ci": "Manzanas Iniciales",
+      "c": "Cambio (+)",
+      "cf": "Manzanas Finales"
+    },
+    "operation": "+",
+    "answer": "8",
+    "fullAnswer": "Ahora tengo 8 manzanas.",
+    "hint": "¿Al final tendré más o menos manzanas que al principio?",
+    "logicCheck": "¿El total es mayor que las partes?"
+  },
+  {
+    "id": "uk303ixw",
+    "createdAt": 1756398881044,
+    "grade": 1,
+    "question": "Hay 8 pájaros en una rama. Si 3 se van volando, ¿cuántos quedan?",
+    "type": "CAMBIO",
+    "data": {
+      "ci": "8",
+      "c": "3",
+      "cf": "?"
+    },
+    "labels": {
+      "ci": "Pájaros Iniciales",
+      "c": "Cambio (-)",
+      "cf": "Pájaros Finales"
+    },
+    "operation": "-",
+    "answer": "5",
+    "fullAnswer": "Quedan 5 pájaros.",
+    "hint": "Si los pájaros se van, ¿habrá más o menos que antes?",
+    "logicCheck": "¿El total es mayor que las partes?"
+  },
+  {
+    "id": "ulseft2i",
+    "createdAt": 1756398881044,
+    "grade": 2,
+    "question": "Ana tiene 15 cromos y Luis tiene 9. ¿Cuántos cromos tiene Ana más que Luis?",
+    "type": "COMPARACION",
+    "data": {
+      "cm": "15",
+      "cmen": "9",
+      "d": "?"
+    },
+    "labels": {
+      "cm": "Cantidad Mayor (Ana)",
+      "cmen": "Cantidad Menor (Luis)",
+      "d": "Diferencia"
+    },
+    "operation": "-",
+    "answer": "6",
+    "fullAnswer": "Ana tiene 6 cromos más que Luis.",
+    "hint": "Estamos buscando la diferencia entre lo que tiene Ana y lo que tiene Luis.",
+    "logicCheck": "¿La cantidad mayor es la suma de la menor y la diferencia?"
+  },
+  {
+    "id": "vj7t5k7b",
+    "createdAt": 1756398881044,
+    "grade": 4,
+    "question": "Compro una camiseta de 15€ y un pantalón de 22€. Si pago con un billete de 50€, ¿cuánto me devuelven?",
+    "type": "DOS_OPERACIONES",
+    "steps": [
+      {
+        "type": "PPT",
+        "data": {
+          "p1": "15",
+          "p2": "22",
+          "t": "?"
+        },
+        "labels": {
+          "p1": "Camiseta",
+          "p2": "Pantalón",
+          "t": "Gasto total"
+        },
+        "operation": "+",
+        "answer": "37"
+      },
+      {
+        "type": "CAMBIO",
+        "data": {
+          "ci": "50",
+          "c": "37",
+          "cf": "?"
+        },
+        "labels": {
+          "ci": "Pago",
+          "c": "Gasto",
+          "cf": "Cambio"
+        },
+        "operation": "-",
+        "answer": "13"
+      }
+    ],
+    "fullAnswer": "Primero sumo 15 + 22 = 37. Luego 50 - 37 = 13. Me devuelven 13€.",
+    "hint": "Calcula el total del gasto y luego el cambio.",
+    "logicCheck": "¿El cambio es menor que el pago?"
+  },
+  {
+    "id": "ppt1",
+    "grade": 1,
+    "question": "Tengo 5 manzanas y me dan 3 más. ¿Cuántas manzanas tengo en total?",
+    "type": "PPT",
+    "data": {
+      "p1": "5",
+      "p2": "3",
+      "t": ""
+    },
+    "labels": {
+      "p1": "manzanas",
+      "p2": "manzanas",
+      "t": "manzanas"
+    },
+    "operation": "+",
+    "answer": "8",
+    "fullAnswer": "En total tengo 8 manzanas.",
+    "hint": "Suma las manzanas.",
+    "logicCheck": "¿Si restamos 3 a 8, obtenemos 5?",
+    "createdAt": 1700000000000
+  },
+  {
+    "id": "ppt2",
+    "grade": 1,
+    "question": "He comprado 7 caramelos y he comido 2. ¿Cuántos caramelos me quedan?",
+    "type": "PPT",
+    "data": {
+      "p1": "7",
+      "p2": "2",
+      "t": ""
+    },
+    "labels": {
+      "p1": "caramelos",
+      "p2": "caramelos",
+      "t": "caramelos"
+    },
+    "operation": "-",
+    "answer": "5",
+    "fullAnswer": "Me quedan 5 caramelos.",
+    "hint": "Resta los caramelos comidos a los que tenías.",
+    "logicCheck": "¿Si sumamos 2 a 5, obtenemos 7?",
+    "createdAt": 1700000000000
+  },
+  {
+    "id": "ppt3",
+    "grade": 1,
+    "question": "Tengo 2 bolsas con 4 lápices cada una. ¿Cuántos lápices tengo en total?",
+    "type": "PPT",
+    "data": {
+      "p1": "2",
+      "p2": "4",
+      "t": ""
+    },
+    "labels": {
+      "p1": "bolsas",
+      "p2": "lápices/bolsa",
+      "t": "lápices"
+    },
+    "operation": "*",
+    "answer": "8",
+    "fullAnswer": "Tengo 8 lápices en total.",
+    "hint": "Multiplica el número de bolsas por el número de lápices en cada bolsa.",
+    "logicCheck": "¿Si dividimos 8 entre 2, obtenemos 4?",
+    "createdAt": 1700000000000
+  },
+  {
+    "id": "ppt4",
+    "grade": 1,
+    "question": "Tengo 6 galletas y las reparto entre 3 amigos. ¿Cuántas galletas recibe cada amigo?",
+    "type": "PPT",
+    "data": {
+      "p1": "6",
+      "p2": "3",
+      "t": ""
+    },
+    "labels": {
+      "p1": "galletas",
+      "p2": "amigos",
+      "t": "galletas/amigo"
+    },
+    "operation": "/",
+    "answer": "2",
+    "fullAnswer": "Cada amigo recibe 2 galletas.",
+    "hint": "Divide el número de galletas entre el número de amigos.",
+    "logicCheck": "¿Si multiplicamos 2 por 3, obtenemos 6?",
+    "createdAt": 1700000000000
+  },
+  {
+    "id": "ppt5",
+    "grade": 1,
+    "question": "Ana tiene 1 euro y su abuela le da 4 euros más. ¿Cuántos euros tiene Ana en total?",
+    "type": "PPT",
+    "data": {
+      "p1": "1",
+      "p2": "4",
+      "t": ""
+    },
+    "labels": {
+      "p1": "euros",
+      "p2": "euros",
+      "t": "euros"
+    },
+    "operation": "+",
+    "answer": "5",
+    "fullAnswer": "Ana tiene 5 euros en total.",
+    "hint": "Suma los euros.",
+    "logicCheck": "¿Si restamos 4 a 5, obtenemos 1?",
+    "createdAt": 1700000000000
+  },
+  {
+    "id": "ppt6",
+    "grade": 1,
+    "question": "Tenía 10 cromos y regalé 6. ¿Cuántos cromos me quedan?",
+    "type": "PPT",
+    "data": {
+      "p1": "10",
+      "p2": "6",
+      "t": ""
+    },
+    "labels": {
+      "p1": "cromos",
+      "p2": "cromos",
+      "t": "cromos"
+    },
+    "operation": "-",
+    "answer": "4",
+    "fullAnswer": "Me quedan 4 cromos.",
+    "hint": "Resta los cromos regalados a los que tenías.",
+    "logicCheck": "¿Si sumamos 6 a 4, obtenemos 10?",
+    "createdAt": 1700000000000
+  },
+  {
+    "id": "ppt7",
+    "grade": 1,
+    "question": "Hay 3 cajas con 2 rotuladores en cada caja. ¿Cuántos rotuladores hay en total?",
+    "type": "PPT",
+    "data": {
+      "p1": "3",
+      "p2": "2",
+      "t": ""
+    },
+    "labels": {
+      "p1": "cajas",
+      "p2": "rotuladores/caja",
+      "t": "rotuladores"
+    },
+    "operation": "*",
+    "answer": "6",
+    "fullAnswer": "Hay 6 rotuladores en total.",
+    "hint": "Multiplica el número de cajas por el número de rotuladores en cada caja.",
+    "logicCheck": "¿Si dividimos 6 entre 3, obtenemos 2?",
+    "createdAt": 1700000000000
+  },
+  {
+    "id": "ppt8",
+    "grade": 1,
+    "question": "Tengo 8 chucherías y las reparto entre 4 amigos. ¿Cuántas chucherías recibe cada amigo?",
+    "type": "PPT",
+    "data": {
+      "p1": "8",
+      "p2": "4",
+      "t": ""
+    },
+    "labels": {
+      "p1": "chucherías",
+      "p2": "amigos",
+      "t": "chucherías/amigo"
+    },
+    "operation": "/",
+    "answer": "2",
+    "fullAnswer": "Cada amigo recibe 2 chucherías.",
+    "hint": "Divide el número de chucherías entre el número de amigos.",
+    "logicCheck": "¿Si multiplicamos 2 por 4, obtenemos 8?",
+    "createdAt": 1700000000000
+  }
+]
