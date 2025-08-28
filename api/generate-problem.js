@@ -10,6 +10,13 @@ export const config = { runtime: 'edge' };
 
 const MODEL = 'gemini-1.5-flash';
 
+// Basic CORS headers to allow GitHub Pages (or other origins) to call this API
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
+
 function genId() {
   return (
     Math.random().toString(36).slice(2, 10) + '-' +
@@ -154,8 +161,12 @@ function normalizeProblem(p, { grade, type }) {
 }
 
 export default async function handler(req) {
+  // Preflight for cross-origin POST with JSON
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { status: 200, headers: { ...CORS_HEADERS } });
+  }
   if (req.method !== 'POST') {
-    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: 'Method not allowed' }), { status: 405, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } });
   }
   try {
     const body = await req.json();
@@ -167,12 +178,12 @@ export default async function handler(req) {
   const prompt = buildPrompt({ grade, type, theme, count });
   const result = await callGemini(prompt);
     if (result.error) {
-      return new Response(JSON.stringify({ error: result.error }), { status: 500, headers: { 'Content-Type': 'application/json' } });
+      return new Response(JSON.stringify({ error: result.error }), { status: 500, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } });
     }
   const arr = (result.problems || []).slice(0, count).map(p => normalizeProblem(p, { grade, type }));
   const first = arr[0] || null;
-  return new Response(JSON.stringify({ problem: first, problems: arr }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  return new Response(JSON.stringify({ problem: first, problems: arr }), { status: 200, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } });
   } catch (e) {
-    return new Response(JSON.stringify({ error: 'Bad request' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ error: 'Bad request' }), { status: 400, headers: { 'Content-Type': 'application/json', ...CORS_HEADERS } });
   }
 }

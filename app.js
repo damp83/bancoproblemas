@@ -32,6 +32,7 @@ const defaultProblems = [
 // --- Globals & helpers reintroduced after merge cleanup ---
 const LS_KEY = 'banco_problemas_v1';
 const AV_PREF_KEY = `${LS_KEY}_avatar_prefs`;
+const API_PREF_KEY = `${LS_KEY}_api_base`;
 
 const state = {
   problems: [],
@@ -55,6 +56,19 @@ function loadProblems() {
 function saveProblems(arr) {
   try { localStorage.setItem(LS_KEY, JSON.stringify(arr || [])); } catch(e) {}
 }
+
+// API base configuration (for calling serverless backend from static hosting like GitHub Pages)
+function getApiBase() {
+  try {
+    let v = localStorage.getItem(API_PREF_KEY)
+      || (document.querySelector('meta[name="api-base"]')?.content)
+      || (window.APP_CONFIG && window.APP_CONFIG.apiBase)
+      || '';
+    if (v && v.endsWith('/')) v = v.slice(0, -1);
+    return v;
+  } catch(_) { return ''; }
+}
+function setApiBase(url) { try { localStorage.setItem(API_PREF_KEY, (url || '').replace(/\/$/, '')); } catch(_){} }
 
 // Close any modal leftovers on startup to avoid blocking UI
 function forceCloseModals() {
@@ -1426,7 +1440,8 @@ function ensureAiModal() {
           <input id="ai-theme" class="w-full p-2 border rounded" placeholder="Ej: frutas, tienda, excursión"/>
         </label>
       </div>
-      <div id="ai-status" class="text-sm text-gray-600 mb-2"></div>
+  <div id="ai-status" class="text-sm text-gray-600 mb-2"></div>
+  <div class="text-xs text-gray-500 mb-2">Endpoint: <span id="ai-endpoint-view"></span> <button id="ai-config-api" class="ml-2 underline text-blue-600">Configurar</button></div>
       <div class="flex justify-end gap-2">
         <button id="ai-cancel" class="py-2 px-4 rounded border">Cancelar</button>
         <button id="ai-generate" class="py-2 px-4 rounded bg-purple-600 text-white">Generar uno</button>
@@ -1448,6 +1463,15 @@ function openAiModal() {
   const btnBatch = document.getElementById('ai-generate-batch');
   btnOne.onclick = () => doAiGenerate(false);
   btnBatch.onclick = () => doAiGenerate(true);
+  // show current endpoint and allow configuring
+  const view = document.getElementById('ai-endpoint-view');
+  if (view) view.textContent = (getApiBase() || window.location.origin) + '/api/generate-problem';
+  const cfg = document.getElementById('ai-config-api');
+  if (cfg) cfg.onclick = () => {
+    const cur = getApiBase();
+    const next = prompt('Introduce la URL base del backend (Vercel):\nEj: https://tu-app.vercel.app', cur || '');
+    if (next != null) { setApiBase(next.trim()); showToast('Endpoint actualizado', 'success'); if (view) view.textContent = (getApiBase() || window.location.origin) + '/api/generate-problem'; }
+  };
 }
 
 function wireAiGenerator() {
@@ -1464,7 +1488,13 @@ async function doAiGenerate(asBatch) {
   const status = document.getElementById('ai-status');
   status.textContent = 'Generando… Por favor espera.';
   try {
-    const res = await fetch('/api/generate-problem', {
+    const base = getApiBase();
+    const url = (base ? base : '') + '/api/generate-problem';
+    // Helpful hint if running on GitHub Pages without configured API
+    if (!base && /github\.io$/i.test(window.location.hostname)) {
+      showToast('Configura el endpoint (Vercel) antes de generar con IA.', 'warn');
+    }
+    const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ grade, type, theme, count })
