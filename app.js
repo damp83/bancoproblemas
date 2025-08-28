@@ -1283,10 +1283,10 @@ function openAvatarPicker(){
 
 // Hook avatar reactions into key validation points
 const origValidateStep1 = validateStep1;
-function validateStep1_withAvatar(stepProblem){
-  const res = origValidateStep1(stepProblem);
-  // if feedback shows correct (green) -> celebrate, else encourage
-  const fb = document.getElementById('feedback-step1'); if (fb && fb.textContent) {
+function validateStep1_withAvatar(){
+  const res = origValidateStep1();
+  // if (res && typeof res === 'object' && res.feedback) {
+    const fb = res.feedback;
     if (fb.textContent.toLowerCase().includes('correct')) avatarCelebrate();
     else if (fb.textContent.toLowerCase().includes('incorrect')) avatarEncourage();
   }
@@ -1920,11 +1920,16 @@ function renderImportErrors(parsed) {
         const snap = localStorage.getItem(LS_KEY);
         const key = `${LS_KEY}_backup_${new Date().toISOString()}`;
         localStorage.setItem(key, snap || JSON.stringify([]));
-        const idxRaw = localStorage.getItem(`${LS_KEY}_backups_index`);
-        const idx = idxRaw ? JSON.parse(idxRaw) : [];
-        idx.unshift({ key, at: new Date().toISOString() });
-        localStorage.setItem(`${LS_KEY}_backups_index`, JSON.stringify(idx.slice(0,20)));
-        pushUndo({ type: 'import', payload: { backupKey: key } });
+        // maintain a simple index of backups
+        try {
+          const idxRaw = localStorage.getItem(`${LS_KEY}_backups_index`);
+          const idx = idxRaw ? JSON.parse(idxRaw) : [];
+          idx.unshift({ key, at: new Date().toISOString() });
+          // keep last 20 backups
+          localStorage.setItem(`${LS_KEY}_backups_index`, JSON.stringify(idx.slice(0,20)));
+          // push undo action for this import (allow undo restoring this backup)
+          pushUndo({ type: 'import', payload: { backupKey: key } });
+        } catch(e) {}
       } catch (e) { /* ignore */ }
       const fixed = applySuggestedFixes(parsed, suggestions, []);
       // apply fixes to last parsed and re-render preview/errors
@@ -1952,11 +1957,14 @@ function renderImportErrors(parsed) {
         const snap = localStorage.getItem(LS_KEY);
         const key = `${LS_KEY}_backup_${new Date().toISOString()}`;
         localStorage.setItem(key, snap || JSON.stringify([]));
-        const idxRaw = localStorage.getItem(`${LS_KEY}_backups_index`);
-        const idx = idxRaw ? JSON.parse(idxRaw) : [];
-        idx.unshift({ key, at: new Date().toISOString() });
-        localStorage.setItem(`${LS_KEY}_backups_index`, JSON.stringify(idx.slice(0,20)));
-        pushUndo({ type: 'import', payload: { backupKey: key } });
+        // maintain a simple index of backups
+        try {
+          const idxRaw = localStorage.getItem(`${LS_KEY}_backups_index`);
+          const idx = idxRaw ? JSON.parse(idxRaw) : [];
+          idx.unshift({ key, at: new Date().toISOString() });
+          localStorage.setItem(`${LS_KEY}_backups_index`, JSON.stringify(idx.slice(0,20)));
+          pushUndo({ type: 'import', payload: { backupKey: key } });
+        } catch(e) { }
       } catch (e) { /* ignore */ }
       const fixed = applySuggestedFixes(parsed, allSuggestions, selected);
       _lastImportParsed = fixed;
@@ -2144,14 +2152,6 @@ function showBackupsModal() {
             <button class="btn-delete-backup py-1 px-3 bg-red-500 text-white rounded" data-key="${entry.key}">Borrar</button>
           </div>
         </li>`;
-      });
-      html += '</ul>';
-      content.innerHTML = html;
-      // wire restore buttons
-      content.querySelectorAll('.btn-restore').forEach(b => b.onclick = (e) => {
-        const k = e.currentTarget.getAttribute('data-key');
-        restoreBackup(k);
-        modal.classList.remove('modal-visible');
         setTimeout(() => { modal.classList.add('hidden'); modal.classList.add('hidden-view'); }, 320);
       });
       content.querySelectorAll('.btn-delete-backup').forEach(b => b.onclick = (e) => {
