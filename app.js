@@ -14,185 +14,150 @@ const defaultProblems = [
     operation: "-", answer: "6", fullAnswer: "Ana tiene 6 cromos más que Luis.", hint: "Estamos buscando la diferencia entre lo que tiene Ana y lo que tiene Luis.", logicCheck: "¿La cantidad mayor es la suma de la menor y la diferencia?" },
   { grade: 4, question: "Compro una camiseta de 15€ y un pantalón de 22€. Si pago con un billete de 50€, ¿cuánto me devuelven?", type: "DOS_OPERACIONES",
     steps: [
-      { type: "PPT", data: { p1: "15", p2: "22", t: "?" }, labels: { p1: "Precio camiseta (P)", p2: "Precio pantalón (P)", t: "Coste Total (T)" },
-        operation: "+", answer: "37", hint: "Primero, necesitamos saber cuánto cuestan las dos cosas juntas." },
-      { type: "PPT", data: { p1: "RESULTADO_ANTERIOR", p2: "?", t: "50" }, labels: { p1: "Coste Total (P)", p2: "Dinero devuelto (P)", t: "Dinero pagado (T)" },
-        operation: "-", answer: "13", hint: "Ahora, con el coste total, ¿cómo calculamos la vuelta?" }
+      { type: "PPT",
+        data: { p1: "15", p2: "22", t: "?" },
+        labels: { p1: "Camiseta", p2: "Pantalón", t: "Gasto total" },
+        operation: "+", answer: "37" },
+      { type: "CAMBIO",
+        data: { ci: "50", c: "37", cf: "?" },
+        labels: { ci: "Pago", c: "Gasto", cf: "Cambio" },
+        operation: "-", answer: "13" }
     ],
-    fullAnswer: "Me devuelven 13 euros.", logicCheck: "¿El total (50) es la suma del coste (37) y la vuelta (13)?" }
+    fullAnswer: "Primero sumo 15 + 22 = 37. Luego 50 - 37 = 13. Me devuelven 13€.",
+    hint: "Calcula el total del gasto y luego el cambio.",
+    logicCheck: "¿El cambio es menor que el pago?"
+  }
 ];
 
-// -------- Persistencia local (array plano) --------
-const LS_KEY = 'ap_bank_v1';
+// --- Globals & helpers reintroduced after merge cleanup ---
+const LS_KEY = 'banco_problemas_v1';
+const AV_PREF_KEY = `${LS_KEY}_avatar_prefs`;
+
+const state = {
+  problems: [],
+  currentProblems: [],
+  currentProblem: null,
+  currentStep: 0
+};
+
+function $(sel) { return document.querySelector(sel); }
+function rid() { return Math.random().toString(36).slice(2, 10); }
+
 function loadProblems() {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch {}
-  const seeded = defaultProblems.map(p => ({ id: rid(), ...p, createdAt: Date.now() }));
-  localStorage.setItem(LS_KEY, JSON.stringify(seeded));
-  return seeded;
-}
-function saveProblems(list) { localStorage.setItem(LS_KEY, JSON.stringify(list)); }
-const rid = () => (Math.random().toString(36).slice(2) + Date.now().toString(36));
-
-// -------- Estado global --------
-const state = {
-  problems: loadProblems(),
-  currentLevel: 0,
-  currentProblems: [],
-  currentProblemIndex: 0,
-  currentProblem: null,
-  selectedOperation: null,
-  logicCorrect: false,
-  currentStep: 0,
-};
-
-// Last parsed import (kept global so injected toolbar can use it)
-let _lastImportParsed = null;
-// Last deleted item for undo
-let _lastDeleted = null;
-// Undo stack (LIFO) for actions: { type: 'delete'|'import', payload: ... }
-const undoStack = [];
-
-// currently editing problem id (null when creating)
-let editingProblemId = null;
-
-// Import preview pagination state
-const _importPreviewPageState = { page: 1, pageSize: 100 };
-
-function pushUndo(action) { try { undoStack.push(action); } catch(e){} }
-
-function undoLastAction() {
-  if (!undoStack.length) { showToast('No hay acciones para deshacer', 'info'); return; }
-  const a = undoStack.pop();
-  if (!a) return;
-  if (a.type === 'delete') {
-    // payload: { item, index }
-    state.problems.splice(a.payload.index, 0, a.payload.item);
-    saveProblems(state.problems);
-    fetchProblemsForEditor($('#grade-selector').value);
-    showToast('Eliminación deshecha', 'success');
-  } else if (a.type === 'import') {
-    // payload: { backupKey }
-    try {
-      const raw = localStorage.getItem(a.payload.backupKey);
-      if (!raw) { showToast('Backup no encontrado para deshacer importación', 'error'); return; }
-      localStorage.setItem(LS_KEY, raw);
-      state.problems = JSON.parse(raw || '[]');
-      saveProblems(state.problems);
-      fetchProblemsForEditor($('#grade-selector').value);
-      showToast('Importación deshecha', 'success');
-    } catch (e) { showToast('Error al deshacer importación: ' + e.message, 'error'); }
+    const arr = raw ? JSON.parse(raw) : null;
+    return Array.isArray(arr) && arr.length ? arr : defaultProblems.map(p => ({ id: rid(), createdAt: Date.now(), ...p }));
+  } catch(e) {
+    return defaultProblems.map(p => ({ id: rid(), createdAt: Date.now(), ...p }));
   }
 }
-
-// -------- Helpers --------
-const $ = s => document.querySelector(s);
-const norm = s => (s ?? '').toString().trim().replace(',', '.');
-
-// Simple toast helper (non-blocking)
-function showToast(message, type = 'info', ttl = 4500) {
-  try {
-    const container = document.getElementById('toast-container');
-    if (!container) return alert(message);
-    const el = document.createElement('div');
-    el.className = `toast ${type} show`;
-    el.innerHTML = `<div class="msg">${message}</div><div class="close">✕</div>`;
-    const close = el.querySelector('.close');
-    close.onclick = () => { el.remove(); };
-    container.appendChild(el);
-    setTimeout(() => { el.classList.remove('show'); try { el.remove(); } catch(e){} }, ttl);
-  } catch (e) { console.error(e); }
+function saveProblems(arr) {
+  try { localStorage.setItem(LS_KEY, JSON.stringify(arr || [])); } catch(e) {}
 }
 
-// Show a toast with an action button (e.g., Undo). Callback is executed when action clicked.
-function showToastAction(message, actionLabel, callback, type = 'info', ttl = 7000) {
-  const container = document.getElementById('toast-container');
-  if (!container) return alert(message);
-  const el = document.createElement('div');
-  el.className = `toast ${type} show`;
-  el.innerHTML = `<div class="msg">${message}</div><div class="action"><button class="toast-action">${actionLabel}</button></div><div class="close">\u2715</div>`;
-  container.appendChild(el);
-  const close = el.querySelector('.close');
-  close.onclick = () => { try { el.remove(); } catch(e){} };
-  const actionBtn = el.querySelector('.toast-action');
-  actionBtn.onclick = () => { try { callback(); } catch(e){} el.remove(); };
-  setTimeout(() => { try { el.classList.remove('show'); el.remove(); } catch(e){} }, ttl);
-}
-
-// Validation constants & helpers (reused by preview and import)
-const VALID_TYPES = new Set(['PPT','UVT','COMPARACION','CAMBIO','DOS_OPERACIONES']);
-const VALID_OPS = new Set(['+','-','*','/']);
-
-function validateStepObj(s) {
-  if (!s || typeof s !== 'object') return 'Paso inválido (debe ser objeto).';
-  if (!s.type || !VALID_TYPES.has(s.type)) return 'Tipo de paso inválido.';
-  if (!s.data || typeof s.data !== 'object') return 'Paso sin campo data válido.';
-  if (!s.labels || typeof s.labels !== 'object') return 'Paso sin campo labels válido.';
-  if (!s.operation || !VALID_OPS.has(s.operation)) return 'Operación inválida en paso.';
-  if (s.answer == null) return 'Paso sin respuesta.';
-  return null;
-}
-
-function validateProblemObj(p) {
-  const errors = [];
-  if (!p || typeof p !== 'object') { errors.push('No es un objeto.'); return errors; }
-  if (!p.question || typeof p.question !== 'string') errors.push('Falta campo "question" (string).');
-  if (p.grade == null || Number.isNaN(Number(p.grade))) errors.push('Grade inválido o ausente.');
-  if (!p.type || !VALID_TYPES.has(p.type)) errors.push('Tipo (type) inválido o ausente.');
-
-  if (p.type === 'DOS_OPERACIONES') {
-    if (!Array.isArray(p.steps) || p.steps.length !== 2) { errors.push("DOS_OPERACIONES debe tener 'steps' como array de 2 pasos."); return errors; }
-    p.steps.forEach((s, si) => {
-      const e = validateStepObj(s);
-      if (e) errors.push(`Paso ${si+1}: ${e}`);
-    });
-  } else {
-    if (!p.data || typeof p.data !== 'object') errors.push('Falta campo "data" válido.');
-    if (!p.labels || typeof p.labels !== 'object') errors.push('Falta campo "labels" válido.');
-    if (!p.operation || !VALID_OPS.has(p.operation)) errors.push('Operación inválida o ausente.');
-    if (p.answer == null) errors.push('Falta campo "answer".');
-  }
-  return errors;
-}
-
-// Cierra modales a prueba de balas
+// Close any modal leftovers on startup to avoid blocking UI
 function forceCloseModals() {
-  ['add-problem-modal', 'ai-modal'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el && !el.classList.contains('hidden-view')) el.classList.add('hidden-view');
-  });
+  try {
+    document.querySelectorAll('.modal-visible').forEach(m => {
+      m.classList.remove('modal-visible');
+      m.classList.add('hidden');
+      m.classList.add('hidden-view');
+    });
+  } catch(e) {}
 }
 
-// -------- CPA (Concreto / Pictórico / Abstracto) helpers --------
+// --- Lightweight UI helpers: toast notifications ---
+function showToast(message, type = 'info', timeout = 3000) {
+  try {
+    const mount = document.getElementById('toast-container');
+    if (!mount) { alert(message); return; }
+    const wrap = document.createElement('div');
+    wrap.className = 'px-4 py-2 rounded shadow text-white';
+    const colors = { info: '#2563eb', success: '#16a34a', error: '#dc2626', warn: '#d97706' };
+    wrap.style.background = colors[type] || colors.info;
+    wrap.textContent = message;
+    mount.appendChild(wrap);
+    setTimeout(() => { try { wrap.classList.add('opacity-0'); setTimeout(()=>wrap.remove(), 300); } catch(_){} }, timeout);
+  } catch(_) { /* no-op */ }
+}
+
+function showToastAction(message, actionLabel, onClick, type = 'info', timeout = 5000) {
+  try {
+    const mount = document.getElementById('toast-container');
+    if (!mount) { if (confirm(message + '\n\nEjecutar: ' + actionLabel + '?')) onClick && onClick(); return; }
+    const wrap = document.createElement('div');
+    wrap.className = 'px-4 py-2 rounded shadow text-white flex items-center gap-3';
+    const colors = { info: '#2563eb', success: '#16a34a', error: '#dc2626', warn: '#d97706' };
+    wrap.style.background = colors[type] || colors.info;
+    const span = document.createElement('span'); span.textContent = message; wrap.appendChild(span);
+    const btn = document.createElement('button'); btn.className = 'bg-white/20 hover:bg-white/30 px-2 py-1 rounded'; btn.textContent = actionLabel || 'Acción';
+    btn.onclick = () => { try { onClick && onClick(); } finally { wrap.remove(); } };
+    wrap.appendChild(btn);
+    mount.appendChild(wrap);
+    setTimeout(() => { try { wrap.classList.add('opacity-0'); setTimeout(()=>wrap.remove(), 300); } catch(_){} }, timeout);
+  } catch(_) { /* no-op */ }
+}
+
+// --- Simple undo stack ---
+let _undoStack = [];
+function pushUndo(entry) { try { _undoStack.push(entry); } catch(_){} }
+function undoLastAction() {
+  try {
+    if (!_undoStack.length) { showToast('Nada que deshacer.', 'info'); return; }
+    const last = _undoStack.pop();
+    if (!last) return;
+    if (last.type === 'delete' && last.payload) {
+      const { item, index } = last.payload;
+      if (item) {
+        const pos = Number.isInteger(index) ? index : state.problems.length;
+        state.problems.splice(Math.max(0, Math.min(pos, state.problems.length)), 0, item);
+        saveProblems(state.problems);
+        try { fetchProblemsForEditor(String(item.grade || document.getElementById('grade-selector')?.value || '1')); } catch(_){}
+        showToast('Deshecho borrado', 'success');
+      }
+    } else if (last.type === 'import' && last.payload && last.payload.backupKey) {
+      restoreBackup(last.payload.backupKey);
+      showToast('Deshecha importación (restaurado backup)', 'success');
+    } else {
+      showToast('Acción no deshacible.', 'info');
+    }
+  } catch(e) { showToast('Error al deshacer', 'error'); }
+}
+
+// --- Data helpers ---
+function norm(v) {
+  if (v == null) return '';
+  const s = String(v).trim();
+  if (s === '?' || s.toUpperCase() === 'RESULTADO_ANTERIOR') return s;
+  // keep only digits, optional minus and dot; normalize comma to dot
+  const t = s.replace(',', '.').match(/-?[0-9]*\.?[0-9]+/);
+  return t ? t[0] : s;
+}
+
+// Fallback CPA synthesizer if no cpa is provided on a step
 function synthesizeCPA(step) {
-  const { type, data, labels } = step || {};
-  const parseN = v => (v === '?' || v === 'RESULTADO_ANTERIOR') ? null : Number(String(v).replace(',', '.'));
-  const cpa = { concrete: { items: {} }, pictorial: { theme: 'bars' }, abstract: {} };
-  const defaultIcon = type === 'CAMBIO' ? '🍎' : (type === 'UVT' ? '🔷' : '🟦');
-  const keysByType = {
-    'PPT': ['p1','p2','t'],
-    'UVT': ['u','v','t'],
-    'COMPARACION': ['cm','cmen','d'],
-    'CAMBIO': ['ci','c','cf']
-  }[type] || Object.keys(data || {});
-  keysByType.forEach(k => {
-    const n = parseN((data||{})[k]);
-    if (Number.isFinite(n) && n >= 0 && n <= 50) cpa.concrete.items[k] = { count: n, icon: defaultIcon };
+  const type = (step && step.type) || 'PPT';
+  const data = (step && step.data) || {};
+  const icon = '🔷';
+  const items = {};
+  Object.entries(data).forEach(([k, v]) => {
+    if (v && v !== '?' && v !== 'RESULTADO_ANTERIOR') {
+      const n = Number(String(v).replace(',', '.'));
+      if (Number.isFinite(n) && n >= 0) items[k] = { count: Math.round(Math.min(n, 100)), icon };
+    }
   });
-  if (type === 'PPT') cpa.abstract.template = '{p1} + {p2} = {t}';
-  if (type === 'UVT') cpa.abstract.template = '{u} x {v} = {t}';
-  if (type === 'COMPARACION') cpa.abstract.template = '{cm} - {cmen} = {d}';
-  if (type === 'CAMBIO') {
-    // try to infer whether 'c' is increment (+) or decrement (-) from labels
-    const changeLabel = (labels && (labels.c || labels.c === '') ) ? labels.c : '';
-    const minusLike = /-|−|menos|remov|quita/i.test(changeLabel);
-    cpa.abstract.template = minusLike ? '{ci} - {c} = {cf}' : '{ci} + {c} = {cf}';
-  }
-  cpa.abstract.hideUnknown = true;
-  cpa.concrete.layout = 'row';
-  return cpa;
+  const abstractTpl = {
+    PPT: '{p1} + {p2} = {t}',
+    UVT: '{u} x {v} = {t}',
+    COMPARACION: '{cm} - {cmen} = {d}',
+    CAMBIO: '{ci} ± {c} = {cf}'
+  }[type] || '';
+  return {
+    concrete: { items, layout: 'row' },
+    pictorial: { theme: 'bars' },
+    abstract: abstractTpl ? { template: abstractTpl, hideUnknown: true } : undefined
+  };
 }
 
 function renderConcrete(cpa, step, mount) {
@@ -255,11 +220,14 @@ function renderAbstract(cpa, step, mount) {
 // -------- Inicio --------
 document.addEventListener('DOMContentLoaded', () => {
   forceCloseModals();                // <- asegura que no hay overlay bloqueando
+  // Load or seed problems before rendering UI
+  state.problems = loadProblems();
   renderLevelSelection();
   renderEditor();
   wireModeToggle();
   wireAccessibility();
   wireSkipLink();
+  wireAiGenerator();
 });
 
 // Skip to content handler
@@ -1138,7 +1106,6 @@ function updateGameProgress(final=false) {
 
 // -------- Avatar helper (selector, dialog, persistence) --------
 const AV_KEY = 'ap_avatar_v1';
-const AV_PREF_KEY = 'ap_avatar_prefs_v1';
 function loadAvatar() {
   try { const v = localStorage.getItem(AV_KEY); if (v) return JSON.parse(v); } catch(e){}
   return { img: null, name: 'Guía' };
@@ -1426,6 +1393,159 @@ function renderEditor() {
   };
   if (btnUndoAction) btnUndoAction.onclick = () => undoLastAction();
   if (backupsClose) backupsClose.onclick = () => { const m = $('#backups-modal'); if (m) { m.classList.remove('modal-visible'); setTimeout(()=>{ m.classList.add('hidden'); m.classList.add('hidden-view'); }, 320); } };
+}
+
+// --- IA: Generar problema con Gemini vía API Vercel ---
+function ensureAiModal() {
+  if (document.getElementById('ai-modal')?.firstChild) return;
+  const modal = document.getElementById('ai-modal');
+  if (!modal) return;
+  modal.innerHTML = `
+    <div class="card rounded-2xl shadow-2xl p-6 w-full max-w-xl">
+      <h3 class="text-xl font-bold mb-3">Generar Problema con IA</h3>
+      <div class="grid gap-3 mb-3">
+        <label class="text-sm">Curso
+          <select id="ai-grade" class="w-full p-2 border rounded">
+            <option value="1">1º</option><option value="2">2º</option><option value="3">3º</option>
+            <option value="4">4º</option><option value="5">5º</option><option value="6">6º</option>
+          </select>
+        </label>
+        <label class="text-sm">Tipo de problema
+          <select id="ai-type" class="w-full p-2 border rounded">
+            <option value="PPT">Parte-Parte-Total</option>
+            <option value="UVT">Unidad-Veces-Total</option>
+            <option value="COMPARACION">Comparación</option>
+            <option value="CAMBIO">Cambio</option>
+            <option value="DOS_OPERACIONES">Dos Operaciones</option>
+          </select>
+        </label>
+        <label class="text-sm">Cantidad (1-10)
+          <input id="ai-count" type="number" min="1" max="10" value="1" class="w-full p-2 border rounded" />
+        </label>
+        <label class="text-sm">Tema (opcional)
+          <input id="ai-theme" class="w-full p-2 border rounded" placeholder="Ej: frutas, tienda, excursión"/>
+        </label>
+      </div>
+      <div id="ai-status" class="text-sm text-gray-600 mb-2"></div>
+      <div class="flex justify-end gap-2">
+        <button id="ai-cancel" class="py-2 px-4 rounded border">Cancelar</button>
+        <button id="ai-generate" class="py-2 px-4 rounded bg-purple-600 text-white">Generar uno</button>
+        <button id="ai-generate-batch" class="py-2 px-4 rounded bg-indigo-600 text-white">Generar lote</button>
+      </div>
+    </div>`;
+}
+
+function openAiModal() {
+  ensureAiModal();
+  const modal = document.getElementById('ai-modal');
+  if (!modal) return;
+  modal.classList.remove('hidden', 'hidden-view');
+  void modal.offsetWidth; modal.classList.add('modal-visible');
+  const cancel = document.getElementById('ai-cancel');
+  cancel.onclick = () => { modal.classList.remove('modal-visible'); setTimeout(()=>{ modal.classList.add('hidden'); modal.classList.add('hidden-view'); }, 260); };
+  modal.addEventListener('click', (e) => { if (e.target === modal) cancel.click(); });
+  const btnOne = document.getElementById('ai-generate');
+  const btnBatch = document.getElementById('ai-generate-batch');
+  btnOne.onclick = () => doAiGenerate(false);
+  btnBatch.onclick = () => doAiGenerate(true);
+}
+
+function wireAiGenerator() {
+  const btn = document.getElementById('btn-ai-generate');
+  if (!btn) return;
+  btn.addEventListener('click', () => openAiModal());
+}
+
+async function doAiGenerate(asBatch) {
+  const grade = Number(document.getElementById('ai-grade').value || 1);
+  const type = document.getElementById('ai-type').value || 'PPT';
+  const theme = (document.getElementById('ai-theme').value || '').trim();
+  const count = Math.max(1, Math.min(10, Number(document.getElementById('ai-count').value || (asBatch ? 5 : 1))));
+  const status = document.getElementById('ai-status');
+  status.textContent = 'Generando… Por favor espera.';
+  try {
+    const res = await fetch('/api/generate-problem', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ grade, type, theme, count })
+    });
+    if (!res.ok) throw new Error('Error de generación (' + res.status + ')');
+    const data = await res.json();
+    const problems = Array.isArray(data.problems) ? data.problems : (data.problem ? [data.problem] : []);
+    if (!problems.length) throw new Error('Respuesta IA incompleta');
+
+    if (asBatch) {
+      const incoming = problems.map(p => ({ id: p.id || rid(), ...p, grade: Number(p.grade), createdAt: p.createdAt || Date.now() }));
+      const existingIds = new Set(state.problems.map(pr => pr.id));
+      incoming.forEach(pr => { if (existingIds.has(pr.id)) pr.id = rid(); state.problems.push(pr); });
+      saveProblems(state.problems);
+      if (!document.getElementById('editor-view').classList.contains('hidden-view')) {
+        fetchProblemsForEditor(document.getElementById('grade-selector').value);
+      }
+      status.textContent = '';
+      const modal = document.getElementById('ai-modal'); if (modal) { modal.classList.remove('modal-visible'); setTimeout(()=>{ modal.classList.add('hidden'); modal.classList.add('hidden-view'); }, 260); }
+      showToast(`Se añadieron ${incoming.length} problemas generados.`, 'success');
+      return;
+    }
+
+    const p = problems[0];
+    editingProblemId = null;
+    showAddProblemForm();
+    const form = document.getElementById('add-problem-form');
+    if (!form) return;
+    const gradeEl = form.querySelector('[name="grade"]'); if (gradeEl) gradeEl.value = String(p.grade || grade);
+    const qEl = form.querySelector('[name="question"]'); if (qEl) qEl.value = p.question || '';
+    const typeSel = form.querySelector('[name="type"]');
+    typeSel.value = p.type || type;
+    renderFormFields();
+    if (p.type === 'DOS_OPERACIONES' && Array.isArray(p.steps)) {
+      const s1 = p.steps[0] || {};
+      const s2 = p.steps[1] || {};
+      form.querySelector('[name="step1_type"]').value = s1.type || 'PPT';
+      form.querySelector('[name="step1_operation"]').value = s1.operation || '+';
+      form.querySelector('[name="step1_answer"]').value = s1.answer ?? '';
+      form.querySelector('[name="step1_label1"]').value = (s1.labels && (s1.labels.p1||s1.labels.u||s1.labels.cm||s1.labels.ci)) || 'Dato 1';
+      form.querySelector('[name="step1_label2"]').value = (s1.labels && (s1.labels.p2||s1.labels.v||s1.labels.cmen||s1.labels.c)) || 'Dato 2';
+      form.querySelector('[name="step1_labelT"]').value = (s1.labels && (s1.labels.t||s1.labels.d||s1.labels.cf)) || 'Total';
+      form.querySelector('[name="step2_type"]').value = s2.type || 'PPT';
+      form.querySelector('[name="step2_operation"]').value = s2.operation || '+';
+      form.querySelector('[name="step2_answer"]').value = s2.answer ?? '';
+      form.querySelector('[name="step2_label1"]').value = (s2.labels && (s2.labels.p1||s2.labels.u||s2.labels.cm||s2.labels.ci)) || 'Dato 1';
+      form.querySelector('[name="step2_label2"]').value = (s2.labels && (s2.labels.p2||s2.labels.v||s2.labels.cmen||s2.labels.c)) || 'Dato 2';
+      form.querySelector('[name="step2_labelT"]').value = (s2.labels && (s2.labels.t||s2.labels.d||s2.labels.cf)) || 'Total';
+      const mapVals = (stype, data, prefix) => {
+        if (!data) return;
+        if (stype === 'PPT') { form.querySelector(`[name="${prefix}_data1"]`).value = data.p1 ?? ''; form.querySelector(`[name="${prefix}_data2"]`).value = data.p2 ?? ''; form.querySelector(`[name="${prefix}_dataT"]`).value = data.t ?? ''; }
+        else if (stype === 'UVT') { form.querySelector(`[name="${prefix}_data1"]`).value = data.u ?? ''; form.querySelector(`[name="${prefix}_data2"]`).value = data.v ?? ''; form.querySelector(`[name="${prefix}_dataT"]`).value = data.t ?? ''; }
+        else if (stype === 'COMPARACION') { form.querySelector(`[name="${prefix}_data1"]`).value = data.cm ?? ''; form.querySelector(`[name="${prefix}_data2"]`).value = data.cmen ?? ''; form.querySelector(`[name="${prefix}_dataT"]`).value = data.d ?? ''; }
+        else if (stype === 'CAMBIO') { form.querySelector(`[name="${prefix}_data1"]`).value = data.ci ?? ''; form.querySelector(`[name="${prefix}_data2"]`).value = data.c ?? ''; form.querySelector(`[name="${prefix}_dataT"]`).value = data.cf ?? ''; }
+      };
+      mapVals(s1.type, s1.data, 'step1');
+      mapVals(s2.type, s2.data, 'step2');
+      form.querySelector('[name="fullAnswer"]').value = p.fullAnswer || '';
+      form.querySelector('[name="logicCheck"]').value = p.logicCheck || '¿La respuesta es lógica?';
+    } else {
+      const labels = p.labels || {};
+      const data = p.data || {};
+      form.querySelector('[name="operation"]').value = p.operation || '+';
+      form.querySelector('[name="answer"]').value = p.answer ?? '';
+      form.querySelector('[name="fullAnswer"]').value = p.fullAnswer || '';
+      form.querySelector('[name="logicCheck"]').value = p.logicCheck || '¿La respuesta es lógica?';
+      form.querySelector('[name="label1"]').value = labels.p1 || labels.u || labels.cm || labels.ci || 'Dato 1';
+      form.querySelector('[name="label2"]').value = labels.p2 || labels.v || labels.cmen || labels.c || 'Dato 2';
+      form.querySelector('[name="labelT"]').value = labels.t || labels.d || labels.cf || 'Total';
+      if (p.type === 'PPT') { form.querySelector('[name="data1"]').value = data.p1 ?? ''; form.querySelector('[name="data2"]').value = data.p2 ?? ''; form.querySelector('[name="dataT"]').value = data.t ?? ''; }
+      else if (p.type === 'UVT') { form.querySelector('[name="data1"]').value = data.u ?? ''; form.querySelector('[name="data2"]').value = data.v ?? ''; form.querySelector('[name="dataT"]').value = data.t ?? ''; }
+      else if (p.type === 'COMPARACION') { form.querySelector('[name="data1"]').value = data.cm ?? ''; form.querySelector('[name="data2"]').value = data.cmen ?? ''; form.querySelector('[name="dataT"]').value = data.d ?? ''; }
+      else if (p.type === 'CAMBIO') { form.querySelector('[name="data1"]').value = data.ci ?? ''; form.querySelector('[name="data2"]').value = data.c ?? ''; form.querySelector('[name="dataT"]').value = data.cf ?? ''; }
+    }
+    const modal = document.getElementById('ai-modal');
+    if (modal) { modal.classList.remove('modal-visible'); setTimeout(()=>{ modal.classList.add('hidden'); modal.classList.add('hidden-view'); }, 260); }
+    showToast('Problema generado. Revisa y guarda.', 'success');
+  } catch (err) {
+    console.error(err);
+    status.innerHTML = `<span class="text-red-600">${err.message || 'Fallo generando problema'}</span>`;
+  }
 }
 
 // Read a file and show a tabular import preview. Kept global so injected toolbar handlers work.
