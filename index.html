@@ -225,6 +225,10 @@
           </div>
 
           <div class="flex items-center gap-2">
+            <button id="btn-print-problem" class="text-sm font-semibold text-white bg-gray-600 hover:bg-gray-700 px-3 py-2 rounded shadow" title="Imprimir el problema seleccionado">🖨️ Imprimir</button>
+          </div>
+
+          <div class="flex items-center gap-2">
             <button id="btn-github-load" class="text-sm font-semibold text-white bg-indigo-700 hover:bg-indigo-800 px-3 py-2 rounded shadow" title="Cargar banco desde GitHub (requiere backend en Vercel)">Cargar GitHub</button>
             <button id="btn-github-save" class="text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 px-3 py-2 rounded shadow" title="Guardar banco en GitHub (requiere backend en Vercel)">Guardar GitHub</button>
           </div>
@@ -232,6 +236,7 @@
 
         <!-- Secondary utilities row -->
         <div class="flex flex-wrap items-center gap-2 mb-6 text-sm">
+          <button id="btn-toggle-list" class="px-3 py-1 rounded border" aria-expanded="true" aria-controls="problem-list-container">Ocultar lista</button>
           <button id="btn-show-backups" class="px-3 py-1 rounded border">Ver backups</button>
           <button id="btn-revert-last-import" class="px-3 py-1 rounded border">Revertir última importación</button>
           <button id="btn-undo-action" class="px-3 py-1 rounded border">Deshacer acción</button>

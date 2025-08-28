@@ -23,17 +23,14 @@ const defaultProblems = [
         labels: { ci: "Pago", c: "Gasto", cf: "Cambio" },
         operation: "-", answer: "13" }
     ],
-    fullAnswer: "Primero sumo 15 + 22 = 37. Luego 50 - 37 = 13. Me devuelven 13€.",
-    hint: "Calcula el total del gasto y luego el cambio.",
-    logicCheck: "¿El cambio es menor que el pago?"
+    fullAnswer: "Primero sumo 15 + 22 = 37. Luego 50 - 37 = 13. Me devuelven 13€."
   }
 ];
-
-// --- Globals & helpers reintroduced after merge cleanup ---
 const LS_KEY = 'banco_problemas_v1';
 const AV_PREF_KEY = `${LS_KEY}_avatar_prefs`;
 const API_PREF_KEY = `${LS_KEY}_api_base`;
 const GH_SHA_KEY = `${LS_KEY}_github_sha`;
+
 
 const state = {
   problems: [],
@@ -58,7 +55,9 @@ function loadProblems() {
   }
 }
 function saveProblems(arr) {
-  try { localStorage.setItem(LS_KEY, JSON.stringify(arr || [])); } catch(e) {}
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify(arr));
+  } catch (e) { /* ignore */ }
 }
 
 // API base configuration (for calling serverless backend from static hosting like GitHub Pages)
@@ -103,7 +102,7 @@ function showToast(message, type = 'info', timeout = 3000) {
 function showToastAction(message, actionLabel, onClick, type = 'info', timeout = 5000) {
   try {
     const mount = document.getElementById('toast-container');
-    if (!mount) { if (confirm(message + '\n\nEjecutar: ' + actionLabel + '?')) onClick && onClick(); return; }
+    if (!mount) { if (confirm(message + '\n\nEjecutar: ' + (actionLabel || 'Acción') + '?')) onClick && onClick(); return; }
     const wrap = document.createElement('div');
     wrap.className = 'px-4 py-2 rounded shadow text-white flex items-center gap-3';
     const colors = { info: '#2563eb', success: '#16a34a', error: '#dc2626', warn: '#d97706' };
@@ -1464,6 +1463,175 @@ function renderEditor() {
       showToast('Error al guardar en GitHub. Revisa el backend/logs.', 'error', 6000);
     }
   };
+
+  // Collapse/expand problem list
+  const btnToggleList = document.getElementById('btn-toggle-list');
+  if (btnToggleList) {
+    // apply initial state from prefs
+    let prefs = {};
+    try { prefs = JSON.parse(localStorage.getItem(UI_PREF_KEY) || '{}'); } catch(_){}
+    const list = document.getElementById('problem-list-container');
+    const setState = (expanded) => {
+      if (!list) return;
+      if (expanded) { list.classList.remove('hidden'); btnToggleList.textContent = 'Ocultar lista'; btnToggleList.setAttribute('aria-expanded','true'); }
+      else { list.classList.add('hidden'); btnToggleList.textContent = 'Mostrar lista'; btnToggleList.setAttribute('aria-expanded','false'); }
+      try { localStorage.setItem(UI_PREF_KEY, JSON.stringify({ ...prefs, listExpanded: expanded })); } catch(_){}
+    };
+    setState(prefs.listExpanded !== false); // default expanded
+    btnToggleList.onclick = () => {
+      const expanded = btnToggleList.getAttribute('aria-expanded') !== 'false';
+      setState(!expanded);
+    };
+  }
+
+  // Print selected problem
+  const btnPrint = document.getElementById('btn-print-problem');
+  if (btnPrint) btnPrint.onclick = () => {
+    try {
+      const checked = Array.from(document.querySelectorAll('.problem-select:checked'));
+      if (!checked.length) { showToast('Selecciona un problema para imprimir.', 'info'); return; }
+      const id = checked[0].getAttribute('data-id');
+      const p = state.problems.find(x => x.id === id);
+      if (!p) { showToast('Problema no encontrado.', 'error'); return; }
+      const html = buildPrintHtml(p);
+      const w = window.open('', '_blank');
+      if (!w) { showToast('Bloqueado por el navegador. Permite popups para imprimir.', 'warn'); return; }
+      w.document.open();
+      w.document.write(html);
+      w.document.close();
+      // Espera breve para que cargue fuentes y estilos y dispara la impresión
+      w.onload = () => { try { w.focus(); w.print(); } catch(_){} };
+    } catch(e) {
+      console.error(e);
+      showToast('Error al preparar la impresión.', 'error');
+    }
+  };
+
+  function buildPrintHtml(p) {
+    const safe = (s) => (s==null?'' : String(s)).replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    const today = new Date().toLocaleDateString();
+    const head = `<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+      <title>Imprimir problema</title>
+      <style>
+        :root{--ink:#111;--mut:#555;}
+        *{box-sizing:border-box}
+        body{font-family: Nunito, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; color:var(--ink);}
+        .sheet{max-width:820px;margin:0 auto;padding:28px}
+        h1{font-size:20px;margin:0 0 10px 0}
+        h2{font-size:16px;margin:18px 0 8px 0}
+        .meta{font-size:12px;color:var(--mut);display:flex;justify-content:space-between;border-bottom:1px solid #ddd;padding-bottom:8px;margin-bottom:14px}
+        .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+        .box{border:1px solid #cfcfcf;border-radius:10px;padding:14px;min-height:120px}
+        .row{display:flex;gap:8px;align-items:center}
+        .label{font-weight:700;min-width:130px}
+        .eq{font-weight:700}
+        .mut{color:var(--mut);font-size:12px}
+        .sp{height:16px}
+        .answer{border-bottom:2px solid #999;min-width:240px;display:inline-block}
+        .lines{margin-top:8px}
+        .line{border-bottom:1px solid #bbb;height:24px;margin:6px 0}
+        .small{font-size:12px;color:var(--mut)}
+        @media print{body{background:white} .no-print{display:none}} 
+      </style>
+    </head><body><div class="sheet">`;
+    const footer = `<div class="sp"></div><div class="mut">Generado: ${today}</div></div></body></html>`;
+
+    if (p.type !== 'DOS_OPERACIONES') {
+      const [l1,l2,lT] = p.labels ? [p.labels.p1||p.labels.u||p.labels.cm||p.labels.ci||'', p.labels.p2||p.labels.v||p.labels.cmen||p.labels.c||'', p.labels.t||p.labels.d||p.labels.cf||''] : ['','',''];
+      const [d1,d2,dT] = p.data ? [p.data.p1||p.data.u||p.data.cm||p.data.ci||'', p.data.p2||p.data.v||p.data.cmen||p.data.c||'', p.data.t||p.data.d||p.data.cf||''] : ['','',''];
+      const op = p.operation || '+';
+      const eq = `${safe(d1)} ${op} ${safe(d2)} = ${safe(dT)}`;
+      return head + `
+        <h1>Problema (${safe(p.type)})</h1>
+        <div class="meta"><div>Curso: ${safe(p.grade||'')}</div><div>ID: ${safe(p.id||'')}</div></div>
+        <p>${safe(p.question||'')}</p>
+        <div class="sp"></div>
+        <div class="grid">
+          <div class="box">
+            <div class="row"><span class="label">${safe(l1||'Dato 1')}</span><span>${safe(d1)}</span></div>
+            <div class="row"><span class="label">${safe(l2||'Dato 2')}</span><span>${safe(d2)}</span></div>
+            <div class="row"><span class="label">${safe(lT||'Total')}</span><span>${safe(dT)}</span></div>
+          </div>
+          <div class="box">
+            <div class="row eq">${eq}</div>
+            <div class="sp"></div>
+            <div class="row"><span class="label">Respuesta numérica</span><span class="answer">&nbsp;</span></div>
+            <div class="sp"></div>
+            <div><div class="small">Respuesta completa</div>
+              <div class="lines"><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div></div>
+            </div>
+          </div>
+        </div>
+        ${p.hint?`<h2>Pista</h2><div class="box">${safe(p.hint)}</div>`:''}
+        ${p.logicCheck?`<h2>Pregunta lógica</h2><div class="box">${safe(p.logicCheck)}</div>`:''}
+      ` + footer;
+    } else {
+      const s1 = p.steps && p.steps[0] || {};
+      const s2 = p.steps && p.steps[1] || {};
+      const pick = (s) => {
+        const l1 = s.labels ? (s.labels.p1||s.labels.u||s.labels.cm||s.labels.ci||'') : '';
+        const l2 = s.labels ? (s.labels.p2||s.labels.v||s.labels.cmen||s.labels.c||'') : '';
+        const lT = s.labels ? (s.labels.t||s.labels.d||s.labels.cf||'') : '';
+        const d1 = s.data ? (s.data.p1||s.data.u||s.data.cm||s.data.ci||'') : '';
+        const d2 = s.data ? (s.data.p2||s.data.v||s.data.cmen||s.data.c||'') : '';
+        const dT = s.data ? (s.data.t||s.data.d||s.data.cf||'') : '';
+        return { l1,l2,lT,d1,d2,dT, op: s.operation || '+' };
+      };
+      const a = pick(s1), b = pick(s2);
+      const eq1 = `${safe(a.d1)} ${a.op} ${safe(a.d2)} = ${safe(a.dT)}`;
+      const eq2 = `${safe(b.d1)} ${b.op} ${safe(b.d2)} = ${safe(b.dT)}`;
+      return head + `
+        <h1>Problema (DOS_OPERACIONES)</h1>
+        <div class="meta"><div>Curso: ${safe(p.grade||'')}</div><div>ID: ${safe(p.id||'')}</div></div>
+        <p>${safe(p.question||'')}</p>
+        <div class="sp"></div>
+        <h2>Paso 1</h2>
+        <div class="grid">
+          <div class="box">
+            <div class="row"><span class="label">${safe(a.l1||'Dato 1')}</span><span>${safe(a.d1)}</span></div>
+            <div class="row"><span class="label">${safe(a.l2||'Dato 2')}</span><span>${safe(a.d2)}</span></div>
+            <div class="row"><span class="label">${safe(a.lT||'Total')}</span><span>${safe(a.dT)}</span></div>
+          </div>
+          <div class="box">
+            <div class="row eq">${eq1}</div>
+            <div class="sp"></div>
+            <div class="row"><span class="label">Respuesta numérica</span><span class="answer">&nbsp;</span></div>
+            <div class="sp"></div>
+            <div><div class="small">Respuesta completa</div>
+              <div class="lines"><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div></div>
+            </div>
+          </div>
+        </div>
+        <h2>Paso 2</h2>
+        <div class="grid">
+          <div class="box">
+            <div class="row"><span class="label">${safe(b.l1||'Dato 1')}</span><span>${safe(b.d1)}</span></div>
+            <div class="row"><span class="label">${safe(b.l2||'Dato 2')}</span><span>${safe(b.d2)}</span></div>
+            <div class="row"><span class="label">${safe(b.lT||'Total')}</span><span>${safe(b.dT)}</span></div>
+          </div>
+          <div class="box">
+            <div class="row eq">${eq2}</div>
+            <div class="sp"></div>
+            <div class="row"><span class="label">Respuesta numérica</span><span class="answer">&nbsp;</span></div>
+            <div class="sp"></div>
+            <div><div class="small">Respuesta completa</div>
+              <div class="lines"><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div></div>
+            </div>
+          </div>
+        </div>
+        ${p.hint?`<h2>Pista</h2><div class="box">${safe(p.hint)}</div>`:''}
+        ${p.logicCheck?`<h2>Pregunta lógica</h2><div class="box">${safe(p.logicCheck)}</div>`:''}
+        <h2>Resultado final</h2>
+        <div class="box">
+          <div class="row"><span class="label">Respuesta numérica</span><span class="answer">&nbsp;</span></div>
+          <div class="sp"></div>
+          <div><div class="small">Respuesta completa</div>
+            <div class="lines"><div class="line"></div><div class="line"></div><div class="line"></div><div class="line"></div></div>
+          </div>
+        </div>
+      ` + footer;
+    }
+  }
   if (btnExportGrade) btnExportGrade.addEventListener('change', () => {});
   if (importCancel) importCancel.onclick = () => { importPreviewModal.classList.add('hidden-view'); };
 
