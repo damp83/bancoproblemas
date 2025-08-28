@@ -1499,7 +1499,12 @@ async function doAiGenerate(asBatch) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ grade, type, theme, count })
     });
-    if (!res.ok) throw new Error('Error de generación (' + res.status + ')');
+    if (!res.ok) {
+      let detail = '';
+      try { const ej = await res.json(); detail = ej && ej.error ? String(ej.error) : ''; } catch(_) { /* ignore */ }
+      const msg = detail ? `Error de generación (${res.status}): ${detail}` : `Error de generación (${res.status})`;
+      throw new Error(msg);
+    }
     const data = await res.json();
     const problems = Array.isArray(data.problems) ? data.problems : (data.problem ? [data.problem] : []);
     if (!problems.length) throw new Error('Respuesta IA incompleta');
@@ -1574,7 +1579,8 @@ async function doAiGenerate(asBatch) {
     showToast('Problema generado. Revisa y guarda.', 'success');
   } catch (err) {
     console.error(err);
-    status.innerHTML = `<span class="text-red-600">${err.message || 'Fallo generando problema'}</span>`;
+  status.innerHTML = `<span class="text-red-600">${err.message || 'Fallo generando problema'}</span>`;
+  showToast(err.message || 'Fallo generando problema', 'error', 6000);
   }
 }
 
