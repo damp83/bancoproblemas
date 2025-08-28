@@ -196,15 +196,17 @@
 
         <div id="problem-list-container" class="mb-6 min-h-[100px]"></div>
 
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <button id="btn-add-manual" class="col-span-1 font-bold text-white bg-green-500 hover:bg-green-600 px-6 py-3 rounded-lg w-full shadow-md">
-            Añadir Problema Manualmente
+        <!-- Compact toolbar: all actions aligned, small buttons, responsive wrap -->
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          <button id="btn-add-manual" class="text-sm font-semibold text-white bg-green-600 hover:bg-green-700 px-3 py-2 rounded shadow">
+            + Añadir Manual
           </button>
-          <button id="btn-ai-generate" class="col-span-1 font-bold text-white bg-purple-600 hover:bg-purple-700 px-6 py-3 rounded-lg w-full shadow-md" title="Generar problema con IA (Gemini por Vercel)">
-            ✨ Generar Problema con IA
+          <button id="btn-ai-generate" class="text-sm font-semibold text-white bg-purple-600 hover:bg-purple-700 px-3 py-2 rounded shadow" title="Generar problema con IA (Gemini por Vercel)">
+            ✨ Generar con IA
           </button>
-          <div class="col-span-1">
-            <select id="export-grade-selector" class="w-full p-2 border rounded mb-2">
+
+          <div class="flex items-center gap-2">
+            <select id="export-grade-selector" class="text-sm p-2 border rounded">
               <option value="all">Exportar: Todos</option>
               <option value="1">Exportar: 1º</option>
               <option value="2">Exportar: 2º</option>
@@ -213,19 +215,26 @@
               <option value="5">Exportar: 5º</option>
               <option value="6">Exportar: 6º</option>
             </select>
-            <button id="btn-export-json" class="font-bold text-white bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg w-full shadow-md" title="Exportar problemas a JSON">Exportar JSON</button>
+            <button id="btn-export-json" class="text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 px-3 py-2 rounded shadow" title="Exportar problemas a JSON">Exportar JSON</button>
           </div>
-          <div class="col-span-1">
-            <button id="btn-import-json" class="font-bold text-white bg-gray-700 hover:bg-gray-800 px-6 py-3 rounded-lg w-full mb-2 shadow-md" title="Importar problemas desde JSON">Importar JSON</button>
+
+          <div class="flex items-center gap-2">
+            <button id="btn-import-json" class="text-sm font-semibold text-white bg-gray-700 hover:bg-gray-800 px-3 py-2 rounded shadow" title="Importar problemas desde JSON">Importar JSON</button>
             <input type="file" id="import-file-input" accept=".json,application/json" class="hidden" />
-            <button id="btn-import-preview" class="w-full text-sm text-gray-600 mt-1 hover:text-gray-800">Mostrar previsualización antes de importar</button>
-            <button id="btn-show-backups" class="w-full text-sm text-gray-600 mt-2 hover:text-gray-800">Ver backups</button>
-            <button id="btn-revert-last-import" class="w-full text-sm text-gray-600 mt-1 hover:text-gray-800">Revertir última importación</button>
-            <button id="btn-undo-action" class="w-full text-sm text-gray-600 mt-1 hover:text-gray-800">Deshacer acción</button>
-            <hr class="my-3" />
-            <button id="btn-github-load" class="font-bold text-white bg-indigo-700 hover:bg-indigo-800 px-6 py-3 rounded-lg w-full mb-2 shadow-md" title="Cargar banco desde GitHub (requiere backend en Vercel)">Cargar desde GitHub</button>
-            <button id="btn-github-save" class="font-bold text-white bg-indigo-500 hover:bg-indigo-600 px-6 py-3 rounded-lg w-full shadow-md" title="Guardar banco en GitHub (requiere backend en Vercel)">Guardar en GitHub</button>
+            <button id="btn-import-preview" class="text-sm text-gray-700 hover:text-gray-900 px-2 py-1">Previsualizar</button>
           </div>
+
+          <div class="flex items-center gap-2">
+            <button id="btn-github-load" class="text-sm font-semibold text-white bg-indigo-700 hover:bg-indigo-800 px-3 py-2 rounded shadow" title="Cargar banco desde GitHub (requiere backend en Vercel)">Cargar GitHub</button>
+            <button id="btn-github-save" class="text-sm font-semibold text-white bg-indigo-500 hover:bg-indigo-600 px-3 py-2 rounded shadow" title="Guardar banco en GitHub (requiere backend en Vercel)">Guardar GitHub</button>
+          </div>
+        </div>
+
+        <!-- Secondary utilities row -->
+        <div class="flex flex-wrap items-center gap-2 mb-6 text-sm">
+          <button id="btn-show-backups" class="px-3 py-1 rounded border">Ver backups</button>
+          <button id="btn-revert-last-import" class="px-3 py-1 rounded border">Revertir última importación</button>
+          <button id="btn-undo-action" class="px-3 py-1 rounded border">Deshacer acción</button>
         </div>
 
         <!-- Modal de Previsualización de Importación -->
