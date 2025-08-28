@@ -25,32 +25,54 @@ function genId() {
 }
 
 function buildPrompt({ grade, type, theme, count }) {
+  const themeLine = theme ? `Usa el tema "${theme}" de forma natural y culturalmente neutra.` : '';
   const n = Math.max(1, Math.min(10, Number(count || 1)));
-  const themeLine = theme ? `Usa el tema \"${theme}\" de forma natural y culturalmente neutra.` : 'Varía el contexto (tienda, cole, excursión, deportes) con lenguaje cercano a Primaria.';
-  const ranges = `Rangos aproximados por curso (usa enteros salvo que el tipo requiera):\n1º: 1-20 sum/resta; 2º: 1-50; 3º: 1-100 (multiplicación básica); 4º: hasta 1000 (dos pasos); 5º-6º: hasta 10000 (incluye división). Evita decimales salvo 5º-6º (<= 1 decimal).`;
-  const rules = [
-    `Devuelve SOLO un JSON válido como un array con ${n} elemento(s).`,
-    'No incluyas texto fuera del JSON. No uses Markdown ni ```.',
-    'Idioma: español (España), tono infantil y claro.',
-    'Evita temas sensibles. Nombres y contextos neutrales.',
-    'answer y todos los valores numéricos en data deben ser cadenas ("12") o "?".',
-    'operation: usa +, -, *, / según corresponda.',
-    'labels: rellena etiquetas claras para cada clave.',
-    'Si tipo = DOS_OPERACIONES: exactamente 2 pasos; el segundo paso debe usar "RESULTADO_ANTERIOR" en una de sus claves de data para depender del primer resultado.',
-    'fullAnswer: frase completa y coherente; hint: pista breve; logicCheck: pregunta de verificación.'
-  ].join('\n- ');
-
-  return `Eres un generador de problemas de matemáticas para Primaria (España). Genera ${n} problema(s) de ${grade}º, tipo ${type}.
+  return `Eres un generador de problemas de matemáticas para Primaria (España). Genera ${n} problema(s) del curso ${grade}º del tipo ${type}.
 ${themeLine}
-${ranges}
-Instrucciones:
-- ${rules}
-Esquema por tipo:
-- PPT: data {"p1","p2","t"}; labels {"p1","p2","t"}
-- UVT: data {"u","v","t"}; labels {"u","v","t"}
-- COMPARACION: data {"cm","cmen","d"}; labels {"cm","cmen","d"}
-- CAMBIO: data {"ci","c","cf"}; labels {"ci","c","cf"}
-Salida: un ARRAY JSON de longitud ${n}. Cada objeto contiene: {"id","grade", "question","type", ("data"+"labels"+"operation"+"answer") o ("steps" de 2), "fullAnswer","hint","logicCheck","createdAt"(epoch ms)}.`;
+Devuelve SOLO un JSON válido como un array con ${n} elemento(s) (y nada más de texto). Formato EXACTO del objeto:
+- Para tipos simples (PPT, UVT, COMPARACION, CAMBIO):
+[
+  {
+    "id": "string-id-corto",
+    "grade": ${grade},
+    "question": "...",
+    "type": "${type}",
+    "data": { CLAVES },
+    "labels": { CLAVES },
+    "operation": "+"|"-"|"*"|"/",
+    "answer": "número o ?",
+    "fullAnswer": "respuesta en frase",
+    "hint": "pista breve",
+    "logicCheck": "pregunta de autoverificación",
+    "createdAt": 1700000000000
+  }
+]
+- Para DOS_OPERACIONES:
+[
+  {
+    "id": "string-id-corto",
+    "grade": ${grade},
+    "question": "...",
+    "type": "DOS_OPERACIONES",
+    "steps": [
+      { "type":"PPT|UVT|COMPARACION|CAMBIO", "data":{...}, "labels":{...}, "operation":"+|-|*|/", "answer":"...", "hint":"..." },
+      { "type":"PPT|UVT|COMPARACION|CAMBIO", "data":{..."p1|u|cm|ci":"RESULTADO_ANTERIOR"...}, "labels":{...}, "operation":"+|-|*|/", "answer":"...", "hint":"..." }
+    ],
+    "fullAnswer": "respuesta final",
+    "logicCheck": "pregunta",
+    "createdAt": 1700000000000
+  }
+]
+Claves por tipo:
+- PPT: data {p1,p2,t}, labels {p1,p2,t}
+- UVT: data {u,v,t}, labels {u,v,t}
+- COMPARACION: data {cm,cmen,d}, labels {cm,cmen,d}
+- CAMBIO: data {ci,c,cf}, labels {ci,c,cf}
+Requisitos:
+- Valores numéricos coherentes con ${grade}º.
+- Todos los valores numéricos de data y answer deben ser cadenas ("12"), excepto "?".
+- Puedes mencionar euros en question/fullAnswer, pero NO pongas símbolos en data/answer.
+- Devuelve ÚNICAMENTE el JSON (array con 1 objeto), sin comentarios ni texto adicional.`;
 }
 
  async function callGemini(prompt) {
@@ -62,10 +84,7 @@ Salida: un ARRAY JSON de longitud ${n}. Cada objeto contiene: {"id","grade", "qu
     const resp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.4 }
-      })
+      body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: prompt }] }] })
     });
     if (!resp.ok) {
       const t = await resp.text();

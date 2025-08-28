@@ -41,6 +41,9 @@ const state = {
   currentStep: 0
 };
 
+// Tracks whether the Add/Edit form is editing an existing problem (stores its id) or creating a new one
+let editingProblemId = null;
+
 function $(sel) { return document.querySelector(sel); }
 function rid() { return Math.random().toString(36).slice(2, 10); }
 
