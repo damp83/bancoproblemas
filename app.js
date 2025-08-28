@@ -2324,6 +2324,8 @@ function hideAddProblemForm() {
 }
 
 function renderProblemForm() {
+  // Defensive: ensure global exists even if an old cached script ran before
+  if (typeof editingProblemId === 'undefined') { window.editingProblemId = null; }
   const form = $('#add-problem-form');
   form.innerHTML = `
     <div>
