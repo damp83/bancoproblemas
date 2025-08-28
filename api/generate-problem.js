@@ -92,16 +92,42 @@ Requisitos:
     }
     const json = await resp.json();
     const text = json?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    // Extract JSON (array or object)
-    const arrMatch = text.match(/\[[\s\S]*\]$/);
-    const objMatch = text.match(/\{[\s\S]*\}$/);
-    const raw = (arrMatch ? arrMatch[0] : (objMatch ? objMatch[0] : text)).trim();
-    let parsed = JSON.parse(raw);
-    if (!Array.isArray(parsed)) parsed = [parsed];
-    return { problems: parsed };
+    // Extract JSON robustly, handling Markdown code fences and extra prose
+    const problems = extractProblemsFromText(text);
+    return { problems };
   } catch (e) {
     return { error: String(e?.message || e) };
   }
+}
+
+function extractProblemsFromText(text) {
+  let t = String(text || '').trim();
+  // If wrapped in Markdown code fences, keep only the inner content
+  const startFence = t.indexOf('```');
+  const endFence = t.lastIndexOf('```');
+  if (startFence !== -1 && endFence !== -1 && endFence > startFence) {
+    t = t.slice(startFence + 3, endFence).trim();
+    // Strip optional language tag like "json"
+    t = t.replace(/^json\s*/i, '').trim();
+  }
+  // Slice to first JSON bracket and last closing bracket
+  const firstSq = t.indexOf('[');
+  const firstCurly = t.indexOf('{');
+  const first = [firstSq, firstCurly].filter(i => i >= 0).sort((a,b)=>a-b)[0];
+  const lastSq = t.lastIndexOf(']');
+  const lastCurly = t.lastIndexOf('}');
+  const last = Math.max(lastSq, lastCurly);
+  if (first >= 0 && last >= first) t = t.slice(first, last + 1).trim();
+  // Try parse as JSON
+  let parsed;
+  try { parsed = JSON.parse(t); }
+  catch (e) {
+    // As a fallback, remove any stray backticks and try again
+    const t2 = t.replace(/```/g, '').trim();
+    parsed = JSON.parse(t2);
+  }
+  if (!Array.isArray(parsed)) parsed = [parsed];
+  return parsed;
 }
 
 function coerceStr(v) {
