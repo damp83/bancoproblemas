@@ -1,0 +1,110 @@
+[
+  {
+    "id": "m6aosveh",
+    "createdAt": 1756398881044,
+    "grade": 1,
+    "question": "Si tengo 6 manzanas y me regalan 2 más, ¿cuántas manzanas tengo ahora?",
+    "type": "CAMBIO",
+    "data": {
+      "ci": "6",
+      "c": "2",
+      "cf": "?"
+    },
+    "labels": {
+      "ci": "Manzanas Iniciales",
+      "c": "Cambio (+)",
+      "cf": "Manzanas Finales"
+    },
+    "operation": "+",
+    "answer": "8",
+    "fullAnswer": "Ahora tengo 8 manzanas.",
+    "hint": "¿Al final tendré más o menos manzanas que al principio?",
+    "logicCheck": "¿El total es mayor que las partes?"
+  },
+  {
+    "id": "uk303ixw",
+    "createdAt": 1756398881044,
+    "grade": 1,
+    "question": "Hay 8 pájaros en una rama. Si 3 se van volando, ¿cuántos quedan?",
+    "type": "CAMBIO",
+    "data": {
+      "ci": "8",
+      "c": "3",
+      "cf": "?"
+    },
+    "labels": {
+      "ci": "Pájaros Iniciales",
+      "c": "Cambio (-)",
+      "cf": "Pájaros Finales"
+    },
+    "operation": "-",
+    "answer": "5",
+    "fullAnswer": "Quedan 5 pájaros.",
+    "hint": "Si los pájaros se van, ¿habrá más o menos que antes?",
+    "logicCheck": "¿El total es mayor que las partes?"
+  },
+  {
+    "id": "ulseft2i",
+    "createdAt": 1756398881044,
+    "grade": 2,
+    "question": "Ana tiene 15 cromos y Luis tiene 9. ¿Cuántos cromos tiene Ana más que Luis?",
+    "type": "COMPARACION",
+    "data": {
+      "cm": "15",
+      "cmen": "9",
+      "d": "?"
+    },
+    "labels": {
+      "cm": "Cantidad Mayor (Ana)",
+      "cmen": "Cantidad Menor (Luis)",
+      "d": "Diferencia"
+    },
+    "operation": "-",
+    "answer": "6",
+    "fullAnswer": "Ana tiene 6 cromos más que Luis.",
+    "hint": "Estamos buscando la diferencia entre lo que tiene Ana y lo que tiene Luis.",
+    "logicCheck": "¿La cantidad mayor es la suma de la menor y la diferencia?"
+  },
+  {
+    "id": "vj7t5k7b",
+    "createdAt": 1756398881044,
+    "grade": 4,
+    "question": "Compro una camiseta de 15€ y un pantalón de 22€. Si pago con un billete de 50€, ¿cuánto me devuelven?",
+    "type": "DOS_OPERACIONES",
+    "steps": [
+      {
+        "type": "PPT",
+        "data": {
+          "p1": "15",
+          "p2": "22",
+          "t": "?"
+        },
+        "labels": {
+          "p1": "Camiseta",
+          "p2": "Pantalón",
+          "t": "Gasto total"
+        },
+        "operation": "+",
+        "answer": "37"
+      },
+      {
+        "type": "CAMBIO",
+        "data": {
+          "ci": "50",
+          "c": "37",
+          "cf": "?"
+        },
+        "labels": {
+          "ci": "Pago",
+          "c": "Gasto",
+          "cf": "Cambio"
+        },
+        "operation": "-",
+        "answer": "13"
+      }
+    ],
+    "fullAnswer": "Primero sumo 15 + 22 = 37. Luego 50 - 37 = 13. Me devuelven 13€.",
+    "hint": "Calcula el total del gasto y luego el cambio.",
+    "logicCheck": "¿El cambio es menor que el pago?"
+  }
+]
