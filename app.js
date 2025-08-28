@@ -33,6 +33,7 @@ const defaultProblems = [
 const LS_KEY = 'banco_problemas_v1';
 const AV_PREF_KEY = `${LS_KEY}_avatar_prefs`;
 const API_PREF_KEY = `${LS_KEY}_api_base`;
+const GH_SHA_KEY = `${LS_KEY}_github_sha`;
 
 const state = {
   problems: [],
@@ -1392,6 +1393,76 @@ function renderEditor() {
     // Trigger file chooser which will call readFileForPreview via onchange
     if (fileInput) fileInput.click();
     else importPreviewModal.classList.remove('hidden-view');
+  };
+
+  // --- GitHub persistence buttons ---
+  const btnGhLoad = document.getElementById('btn-github-load');
+  const btnGhSave = document.getElementById('btn-github-save');
+  if (btnGhLoad) btnGhLoad.onclick = async () => {
+    const base = getApiBase();
+    if (!base) { showToast('Configura el endpoint de API primero.', 'warn'); return; }
+    try {
+      const res = await fetch(`${base}/api/problems`, { method: 'GET', headers: { 'Accept': 'application/json' } });
+      if (!res.ok) {
+        const txt = await res.text();
+        throw new Error(`GET /api/problems ${res.status}: ${txt.slice(0,300)}`);
+      }
+      const data = await res.json();
+      const problems = Array.isArray(data.problems) ? data.problems : [];
+      if (!problems.length) { showToast('No se encontraron problemas en GitHub.', 'info'); return; }
+      // backup current then replace
+      try { localStorage.setItem(`${LS_KEY}_backup_${Date.now()}`, JSON.stringify(state.problems)); } catch(_){}
+      state.problems = problems.map(p => ({ id: p.id || rid(), createdAt: p.createdAt || Date.now(), ...p }));
+      saveProblems(state.problems);
+      if (data.sha) try { localStorage.setItem(GH_SHA_KEY, data.sha); } catch(_){}
+      // refresh current editor view
+      const sel = document.getElementById('grade-selector');
+      fetchProblemsForEditor(sel ? sel.value : 1);
+      showToast(`Cargado banco desde GitHub (${problems.length})`, 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Error al cargar desde GitHub. Revisa el backend/logs.', 'error', 6000);
+    }
+  };
+  if (btnGhSave) btnGhSave.onclick = async () => {
+    const base = getApiBase();
+    if (!base) { showToast('Configura el endpoint de API primero.', 'warn'); return; }
+    const sha = localStorage.getItem(GH_SHA_KEY) || undefined;
+    const message = `chore: update problems (${new Date().toISOString()})`;
+    try {
+      const res = await fetch(`${base}/api/problems`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ problems: state.problems, sha, message })
+      });
+      if (!res.ok) {
+        const txt = await res.text();
+        if (res.status === 409) {
+          // conflict: ask user
+          if (confirm('Conflicto de versión (sha). ¿Sobrescribir con la versión local igualmente?')) {
+            const res2 = await fetch(`${base}/api/problems`, {
+              method: 'POST', headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+              body: JSON.stringify({ problems: state.problems, message: message + ' (force)' })
+            });
+            if (!res2.ok) { throw new Error(`POST force ${res2.status}: ${await res2.text()}`); }
+            const d2 = await res2.json();
+            if (d2.sha) localStorage.setItem(GH_SHA_KEY, d2.sha);
+            showToast('Guardado forzado en GitHub.', 'success');
+            return;
+          } else {
+            showToast('Operación cancelada. Considera “Cargar desde GitHub” primero.', 'info');
+            return;
+          }
+        }
+        throw new Error(`POST /api/problems ${res.status}: ${txt.slice(0,300)}`);
+      }
+      const data = await res.json();
+      if (data.sha) localStorage.setItem(GH_SHA_KEY, data.sha);
+      showToast('Banco guardado en GitHub.', 'success');
+    } catch (e) {
+      console.error(e);
+      showToast('Error al guardar en GitHub. Revisa el backend/logs.', 'error', 6000);
+    }
   };
   if (btnExportGrade) btnExportGrade.addEventListener('change', () => {});
   if (importCancel) importCancel.onclick = () => { importPreviewModal.classList.add('hidden-view'); };
